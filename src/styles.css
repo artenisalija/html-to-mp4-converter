@@ -224,8 +224,6 @@ output,
 }
 
 .preview-frame {
-  --preview-width: 720;
-  --preview-height: 1280;
   display: grid;
   place-items: center;
   min-height: 520px;
@@ -248,7 +246,7 @@ iframe {
   height: 1280px;
   border: 0;
   background: #ffffff;
-  transform: scale(min(1, calc((100vw - 430px) / var(--preview-width)), calc(640px / var(--preview-height))));
+  transform: scale(var(--preview-scale, 1));
   transform-origin: center;
   box-shadow: 0 12px 32px rgba(23, 32, 42, 0.18);
 }
@@ -301,9 +299,6 @@ video {
     grid-template-columns: 1fr;
   }
 
-  iframe {
-    transform: scale(min(1, calc((100vw - 56px) / var(--preview-width)), calc(640px / var(--preview-height))));
-  }
 }
 
 @media (max-width: 620px) {

@@ -215,8 +215,9 @@ document.querySelectorAll('[data-size]').forEach((button) => {
 elements.htmlInput.addEventListener('input', debounce(refreshPreview, 350));
 elements.htmlFile.addEventListener('change', refreshPreview);
 elements.assetFiles.addEventListener('change', refreshPreview);
-elements.refreshButton.addEventListener('click', refreshPreview);
+elements.refreshButton.addEventListener('click', () => refreshPreview());
 elements.convertButton.addEventListener('click', convert);
+window.addEventListener('resize', debounce(updateDimensions, 100));
 
 updateDimensions();
 refreshPreview();
@@ -236,16 +237,22 @@ function updateDimensions() {
   const settings = getSettings();
   const outWidth = settings.width * settings.scale;
   const outHeight = settings.height * settings.scale;
+  const previewBounds = elements.previewFrame.getBoundingClientRect();
+  const previewWidth = Math.max(280, previewBounds.width - 36 || window.innerWidth - 72);
+  const previewHeight = Math.min(640, Math.max(360, window.innerHeight - 260));
+  const previewScale = Math.min(1, previewWidth / settings.width, previewHeight / settings.height);
+
   elements.outputSize.value = `${outWidth} x ${outHeight}`;
   elements.previewMeta.textContent = `${settings.width} x ${settings.height}`;
   elements.preview.style.width = `${settings.width}px`;
   elements.preview.style.height = `${settings.height}px`;
-  elements.previewFrame.style.setProperty('--preview-width', settings.width);
-  elements.previewFrame.style.setProperty('--preview-height', settings.height);
+  elements.preview.style.setProperty('--preview-scale', previewScale.toFixed(4));
+  elements.previewFrame.style.minHeight = `${Math.max(360, Math.round((settings.height * previewScale) + 48))}px`;
 }
 
-async function refreshPreview() {
-  if (state.busy) return;
+async function refreshPreview(options = {}) {
+  const { force = false, throwOnError = false } = options instanceof Event ? {} : options;
+  if (state.busy && !force) return false;
   setStatus('Loading preview', 0);
 
   try {
@@ -253,8 +260,11 @@ async function refreshPreview() {
     elements.preview.srcdoc = html;
     await waitForIframe();
     setStatus('Preview ready', 0);
+    return true;
   } catch (error) {
     setStatus(error.message, 0, true);
+    if (throwOnError) throw error;
+    return false;
   }
 }
 
@@ -269,7 +279,7 @@ async function convert() {
   try {
     const settings = getSettings();
     validateSettings(settings);
-    await refreshPreview();
+    await refreshPreview({ force: true, throwOnError: true });
     const doc = elements.preview.contentDocument;
     if (!doc?.documentElement) throw new Error('Preview is not available.');
 
@@ -385,7 +395,7 @@ async function transcodeToMp4(webmBlob, settings) {
   const data = await ffmpeg.readFile(outputName);
   await ffmpeg.deleteFile(inputName).catch(() => {});
   await ffmpeg.deleteFile(outputName).catch(() => {});
-  return new Blob([data.buffer], { type: 'video/mp4' });
+  return new Blob([data], { type: 'video/mp4' });
 }
 
 async function getFfmpeg() {
