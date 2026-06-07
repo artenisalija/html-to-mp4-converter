@@ -9,110 +9,122 @@ const app = document.querySelector('#app');
 
 app.innerHTML = `
   <header class="topbar">
-    <div>
-      <h1>HTML to MP4</h1>
-      <p>Free in-browser converter with 4x output scaling.</p>
-    </div>
-    <span class="tool-status" id="toolStatus">Ready</span>
+    <a class="brand" href="https://artenisalija.com/" aria-label="Artenis Alija home">ARTENIS ALIJA</a>
+    <nav class="nav-links" aria-label="Converter navigation">
+      <a href="https://artenisalija.com/services/">Services</a>
+      <a href="https://artenisalija.com/blog/">Blog</a>
+      <a href="https://github.com/artenisalija/html-to-mp4-converter">GitHub</a>
+    </nav>
   </header>
 
   <main class="workspace">
-    <section class="panel controls">
-      <div class="section">
-        <div class="section-head">
-          <h2>Source</h2>
-          <div class="segmented" aria-label="Source type">
-            <button type="button" class="active" data-source="paste">Paste</button>
-            <button type="button" data-source="upload">Upload</button>
+    <section class="tool-intro" aria-labelledby="app-title">
+      <div>
+        <span class="eyebrow">Free browser tool</span>
+        <h1 id="app-title">Free HTML to MP4 Converter</h1>
+        <p>Turn AI-generated HTML into MP4 video locally in your browser. No server upload. 4x upscale available.</p>
+      </div>
+      <span class="tool-status" id="toolStatus">Ready</span>
+    </section>
+
+    <div class="app-grid">
+      <section class="panel controls" aria-label="Converter controls">
+        <div class="section">
+          <div class="section-head">
+            <h2>Source</h2>
+            <div class="segmented" aria-label="Source type">
+              <button type="button" class="active" data-source="paste">Paste</button>
+              <button type="button" data-source="upload">Upload</button>
+            </div>
+          </div>
+
+          <div class="source-pane" data-pane="paste">
+            <label for="htmlInput">HTML</label>
+            <textarea id="htmlInput" spellcheck="false"></textarea>
+          </div>
+
+          <div class="source-pane" data-pane="upload" hidden>
+            <label for="htmlFile">HTML file</label>
+            <input id="htmlFile" type="file" accept=".html,.htm,text/html">
+            <label for="assetFiles">Assets</label>
+            <input id="assetFiles" type="file" multiple>
           </div>
         </div>
 
-        <div class="source-pane" data-pane="paste">
-          <label for="htmlInput">HTML</label>
-          <textarea id="htmlInput" spellcheck="false"></textarea>
-        </div>
+        <div class="section">
+          <div class="section-head">
+            <h2>Canvas</h2>
+            <div class="preset-row">
+              <button type="button" data-size="1280x720">16:9</button>
+              <button type="button" data-size="1080x1080">1:1</button>
+              <button type="button" data-size="720x1280">9:16</button>
+            </div>
+          </div>
 
-        <div class="source-pane" data-pane="upload" hidden>
-          <label for="htmlFile">HTML file</label>
-          <input id="htmlFile" type="file" accept=".html,.htm,text/html">
-          <label for="assetFiles">Assets</label>
-          <input id="assetFiles" type="file" multiple>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <h2>Canvas</h2>
-          <div class="preset-row">
-            <button type="button" data-size="1280x720">16:9</button>
-            <button type="button" data-size="1080x1080">1:1</button>
-            <button type="button" data-size="720x1280">9:16</button>
+          <div class="grid">
+            <label>Width<input id="width" type="number" min="120" max="1920" value="720"></label>
+            <label>Height<input id="height" type="number" min="120" max="1920" value="1280"></label>
+            <label>Duration<input id="duration" type="number" min="0.5" max="60" step="0.5" value="4"></label>
+            <label>FPS<input id="fps" type="number" min="1" max="30" value="12"></label>
           </div>
         </div>
 
-        <div class="grid">
-          <label>Width<input id="width" type="number" min="120" max="1920" value="720"></label>
-          <label>Height<input id="height" type="number" min="120" max="1920" value="1280"></label>
-          <label>Duration<input id="duration" type="number" min="0.5" max="60" step="0.5" value="4"></label>
-          <label>FPS<input id="fps" type="number" min="1" max="30" value="12"></label>
+        <div class="section">
+          <div class="section-head">
+            <h2>Output</h2>
+            <output id="outputSize">2880 x 5120</output>
+          </div>
+
+          <div class="grid">
+            <label>Upscale
+              <select id="scale">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="4" selected>4x</option>
+              </select>
+            </label>
+            <label>Quality
+              <select id="quality">
+                <option value="18">High</option>
+                <option value="23" selected>Balanced</option>
+                <option value="28">Small</option>
+              </select>
+            </label>
+            <label>Capture
+              <select id="captureMode">
+                <option value="realtime" selected>Realtime animation</option>
+                <option value="sharp">Sharp stills</option>
+              </select>
+            </label>
+            <label>Background<input id="background" type="color" value="#0d1110"></label>
+            <label>Frame wait<input id="frameWait" type="number" min="0" max="1000" step="25" value="0"></label>
+          </div>
         </div>
-      </div>
 
-      <div class="section">
-        <div class="section-head">
-          <h2>Output</h2>
-          <output id="outputSize">2880 x 5120</output>
+        <div class="action-row">
+          <button class="primary" id="convertButton" type="button">Convert MP4</button>
+          <button class="secondary" id="refreshButton" type="button">Refresh Preview</button>
         </div>
+      </section>
 
-        <div class="grid">
-          <label>Upscale
-            <select id="scale">
-              <option value="1">1x</option>
-              <option value="2">2x</option>
-              <option value="4" selected>4x</option>
-            </select>
-          </label>
-          <label>Quality
-            <select id="quality">
-              <option value="18">High</option>
-              <option value="23" selected>Balanced</option>
-              <option value="28">Small</option>
-            </select>
-          </label>
-          <label>Capture
-            <select id="captureMode">
-              <option value="realtime" selected>Realtime animation</option>
-              <option value="sharp">Sharp stills</option>
-            </select>
-          </label>
-          <label>Background<input id="background" type="color" value="#ffffff"></label>
-          <label>Frame wait<input id="frameWait" type="number" min="0" max="1000" step="25" value="0"></label>
+      <section class="panel preview-panel" aria-label="Preview and output">
+        <div class="preview-head">
+          <h2>Preview</h2>
+          <span id="previewMeta">720 x 1280</span>
         </div>
-      </div>
-
-      <div class="action-row">
-        <button class="primary" id="convertButton" type="button">Convert MP4</button>
-        <button class="secondary" id="refreshButton" type="button">Refresh Preview</button>
-      </div>
-    </section>
-
-    <section class="panel preview-panel">
-      <div class="preview-head">
-        <h2>Preview</h2>
-        <span id="previewMeta">720 x 1280</span>
-      </div>
-      <div class="preview-frame" id="previewFrame">
-        <iframe id="preview" title="HTML preview"></iframe>
-      </div>
-      <div class="progress-track">
-        <div id="progressBar"></div>
-      </div>
-      <div class="job-row">
-        <span id="jobStatus">Idle</span>
-        <a id="downloadLink" hidden>Download MP4</a>
-      </div>
-      <video id="videoPreview" controls hidden></video>
-    </section>
+        <div class="preview-frame" id="previewFrame">
+          <iframe id="preview" title="HTML preview"></iframe>
+        </div>
+        <div class="progress-track">
+          <div id="progressBar"></div>
+        </div>
+        <div class="job-row">
+          <span id="jobStatus">Idle</span>
+          <a id="downloadLink" hidden>Download MP4</a>
+        </div>
+        <video id="videoPreview" controls hidden></video>
+      </section>
+    </div>
   </main>
 `;
 
@@ -131,17 +143,17 @@ const defaultHtml = `<!doctype html>
       background:
         linear-gradient(90deg, rgba(15,118,110,.14) 1px, transparent 1px),
         linear-gradient(0deg, rgba(29,78,216,.12) 1px, transparent 1px),
-        #ffffff;
+        #0d1110;
       background-size: 64px 64px;
-      color: #17202a;
+      color: #f4f7f1;
       font-family: Inter, system-ui, sans-serif;
     }
     main { width: 100%; padding: 8vw; }
-    .label { color: #0f766e; font-size: 32px; font-weight: 900; text-transform: uppercase; }
+    .label { color: #5ef38c; font-size: 32px; font-weight: 900; text-transform: uppercase; }
     h1 { max-width: 900px; margin: 16px 0 0; font-size: 118px; line-height: .92; letter-spacing: 0; }
-    .bar { position: fixed; left: 8vw; bottom: 8vw; width: 48vw; height: 18px; overflow: hidden; border-radius: 8px; background: #e5e7eb; }
-    .bar::after { content: ""; display: block; width: 42%; height: 100%; background: #1d4ed8; animation: move 2.8s ease-in-out infinite alternate; }
-    .dot { position: fixed; right: 12vw; top: 18vh; width: 120px; aspect-ratio: 1; border-radius: 50%; background: #b45309; animation: float 3s ease-in-out infinite alternate; }
+    .bar { position: fixed; left: 8vw; bottom: 8vw; width: 48vw; height: 18px; overflow: hidden; border-radius: 8px; background: #1e2520; }
+    .bar::after { content: ""; display: block; width: 42%; height: 100%; background: #5ef38c; animation: move 2.8s ease-in-out infinite alternate; }
+    .dot { position: fixed; right: 12vw; top: 18vh; width: 120px; aspect-ratio: 1; border-radius: 50%; background: #5ef38c; animation: float 3s ease-in-out infinite alternate; }
     @keyframes move { to { transform: translateX(138%); } }
     @keyframes float { to { transform: translateY(34vh); } }
   </style>

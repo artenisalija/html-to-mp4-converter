@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://artenisalija.com/html-to-mp4-converter/sitemap.xml

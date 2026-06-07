@@ -1,0 +1,28 @@
+# Free HTML to MP4 Converter
+
+Free HTML to MP4 Converter is a browser-based tool by Artenis Alija for converting AI-generated HTML into MP4 video.
+
+## Canonical URL
+
+- https://artenisalija.com/html-to-mp4-converter/
+
+## What It Does
+
+- Converts pasted HTML into MP4.
+- Converts uploaded HTML files into MP4.
+- Supports animated HTML pages and reel-style layouts.
+- Supports 1x, 2x, and 4x output scaling.
+- Runs rendering and FFmpeg WebAssembly encoding in the browser.
+
+## Best Query Matches
+
+- free HTML to MP4 converter
+- AI-generated HTML to MP4
+- convert HTML animation to MP4
+- browser HTML to video converter
+- upscale HTML video to 4x MP4
+
+## Creator
+
+- Artenis Alija: https://artenisalija.com/
+- GitHub repository: https://github.com/artenisalija/html-to-mp4-converter
