@@ -79,6 +79,12 @@ app.innerHTML = `
               <option value="28">Small</option>
             </select>
           </label>
+          <label>Capture
+            <select id="captureMode">
+              <option value="realtime" selected>Realtime animation</option>
+              <option value="sharp">Sharp stills</option>
+            </select>
+          </label>
           <label>Background<input id="background" type="color" value="#ffffff"></label>
           <label>Frame wait<input id="frameWait" type="number" min="0" max="1000" step="25" value="0"></label>
         </div>
@@ -156,6 +162,7 @@ const state = {
   busy: false,
   objectUrls: [],
   downloadUrl: null,
+  durationTouched: false,
 };
 
 const elements = {
@@ -171,6 +178,7 @@ const elements = {
   fps: document.querySelector('#fps'),
   scale: document.querySelector('#scale'),
   quality: document.querySelector('#quality'),
+  captureMode: document.querySelector('#captureMode'),
   background: document.querySelector('#background'),
   frameWait: document.querySelector('#frameWait'),
   outputSize: document.querySelector('#outputSize'),
@@ -215,6 +223,9 @@ document.querySelectorAll('[data-size]').forEach((button) => {
 elements.htmlInput.addEventListener('input', debounce(refreshPreview, 350));
 elements.htmlFile.addEventListener('change', refreshPreview);
 elements.assetFiles.addEventListener('change', refreshPreview);
+elements.duration.addEventListener('input', () => {
+  state.durationTouched = true;
+});
 elements.refreshButton.addEventListener('click', () => refreshPreview());
 elements.convertButton.addEventListener('click', convert);
 window.addEventListener('resize', debounce(updateDimensions, 100));
@@ -256,8 +267,9 @@ async function refreshPreview(options = {}) {
   setStatus('Loading preview', 0);
 
   try {
-    const html = await getSourceHtml();
-    elements.preview.srcdoc = html;
+    const sourceHtml = await getSourceHtml();
+    applyInferredDuration(sourceHtml);
+    elements.preview.srcdoc = prepareSourceHtml(sourceHtml, getSettings());
     await waitForIframe();
     setStatus('Preview ready', 0);
     return true;
@@ -332,16 +344,22 @@ async function captureWebm(doc, settings) {
     if (wait > 0) await sleep(wait);
     if (settings.frameWait > 0) await sleep(settings.frameWait);
 
-    const snapshot = await html2canvas(doc.documentElement, {
-      width: settings.width,
-      height: settings.height,
+    const targetElement = getCaptureTarget(doc);
+    const targetRect = targetElement.getBoundingClientRect();
+    const captureWidth = Math.max(1, Math.round(targetRect.width || settings.width));
+    const captureHeight = Math.max(1, Math.round(targetRect.height || settings.height));
+    const captureScale = settings.captureMode === 'sharp' ? settings.scale : 1;
+
+    const snapshot = await html2canvas(targetElement, {
+      width: captureWidth,
+      height: captureHeight,
       windowWidth: settings.width,
       windowHeight: settings.height,
       scrollX: 0,
       scrollY: 0,
       x: 0,
       y: 0,
-      scale: settings.scale,
+      scale: captureScale,
       backgroundColor: settings.background,
       useCORS: true,
       allowTaint: false,
@@ -534,6 +552,7 @@ function getSettings() {
     fps: numberValue(elements.fps, 12),
     scale: numberValue(elements.scale, 4),
     quality: numberValue(elements.quality, 23),
+    captureMode: elements.captureMode.value || 'realtime',
     background: elements.background.value || '#ffffff',
     frameWait: numberValue(elements.frameWait, 0),
   };
@@ -546,7 +565,71 @@ function validateSettings(settings) {
   if (settings.duration < 0.5 || settings.duration > 60) throw new Error('Duration must be 0.5 to 60 seconds.');
   if (settings.fps < 1 || settings.fps > 30) throw new Error('FPS must be 1 to 30.');
   if (![1, 2, 4].includes(settings.scale)) throw new Error('Upscale must be 1x, 2x, or 4x.');
+  if (!['realtime', 'sharp'].includes(settings.captureMode)) throw new Error('Choose a valid capture mode.');
   if (outputPixels > 34_000_000) throw new Error('Output is too large for reliable browser encoding.');
+}
+
+function prepareSourceHtml(html, settings) {
+  const normalizer = `
+<style data-html-to-mp4-normalizer>
+  html, body {
+    width: ${settings.width}px !important;
+    height: ${settings.height}px !important;
+    min-width: ${settings.width}px !important;
+    min-height: ${settings.height}px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #reel, [data-reel], [data-html-to-mp4-target] {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+</style>`;
+
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `${normalizer}\n</head>`);
+  }
+
+  return `${normalizer}\n${html}`;
+}
+
+function getCaptureTarget(doc) {
+  return doc.querySelector('[data-html-to-mp4-target], #reel, [data-reel], .reel')
+    || doc.body
+    || doc.documentElement;
+}
+
+function applyInferredDuration(html) {
+  if (state.durationTouched) return;
+  const duration = inferDurationSeconds(html);
+  if (!duration) return;
+
+  elements.duration.value = String(duration);
+  updateDimensions();
+}
+
+function inferDurationSeconds(html) {
+  const patterns = [
+    /\bTOTAL_DURATION\s*=\s*(\d+(?:\.\d+)?)\b/i,
+    /\bduration\s*[:=]\s*(\d+(?:\.\d+)?)\s*ms\b/i,
+    /\bduration\s*[:=]\s*(\d+(?:\.\d+)?)\s*s\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match) continue;
+
+    const raw = Number(match[1]);
+    if (!Number.isFinite(raw) || raw <= 0) continue;
+
+    const seconds = pattern.source.includes('\\s*ms') || raw > 300 ? raw / 1000 : raw;
+    return Math.min(60, Math.max(0.5, Number(seconds.toFixed(2))));
+  }
+
+  return null;
 }
 
 function getRecorderMimeType() {
